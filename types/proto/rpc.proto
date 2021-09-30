@@ -244,4 +244,7 @@ service chain33 {
 
     // 获取节点配置信息
     rpc GetChainConfig(ReqNil) returns (ChainConfigInfo) {}
+
+    //订阅区块推送
+    rpc AddPushSubscribe(PushSubscribeReq) returns (ReplySubscribePush) {}
 }

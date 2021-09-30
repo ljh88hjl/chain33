@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+
+package types;
+option go_package = "github.com/33cn/chain33/types";
+
+
+message MpcPayload {//联邦计算交易的payload
+  string operation = 1; //操作
+  string nodeName = 2;  //节点名（地址）
+  string nodeAddr = 3;  //节点rpc地址
+
+  string       taskId = 4;  //task唯一标识 id
+  string       taskType = 5; //task类型
+  string       execNode = 6;  //task执行节点
+
+  bytes      result = 7; //计算结果
+
+  string       dataName = 8; //数据名
+  string       dataType = 9; //数据类型
+  string       dataHash = 10;  //数据hash
+}
+
+message MpcPayloadList {
+  repeated MpcPayload mpcPayload = 1;
+}

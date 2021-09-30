@@ -602,3 +602,8 @@ func (g *Grpc) GetChainConfig(ctx context.Context, in *pb.ReqNil) (*pb.ChainConf
 		IsPara:         cfg.IsPara(),
 	}, nil
 }
+
+// AddPushSubscribe 订阅区块推送
+func (g *Grpc) AddPushSubscribe(req *pb.PushSubscribeReq) (*pb.ReplySubscribePush, error) {
+	return g.cli.AddPushSubscribe(req)
+}

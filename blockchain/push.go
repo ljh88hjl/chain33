@@ -37,6 +37,7 @@ const (
 	PushTxReceipt   = int32(2)
 	PushTxResult    = int32(3)
 	PushEVMEvent    = int32(4)
+	PushMpcTask     = int32(5)
 )
 
 // CommonStore 通用的store 接口
@@ -293,7 +294,7 @@ func (push *Push) addSubscriber(subscribe *types.PushSubscribeReq) error {
 		return types.ErrInvalidParam
 	}
 
-	if subscribe.Type < PushBlock || subscribe.Type > PushEVMEvent {
+	if subscribe.Type < PushBlock || subscribe.Type > PushMpcTask {
 		chainlog.Error("addSubscriber input type is error", "type", subscribe.Type)
 		return types.ErrInvalidParam
 	}
@@ -604,6 +605,8 @@ func (push *Push) getPushData(subscribe *types.PushSubscribeReq, startSeq int64,
 		return push.getTxResults(subscribe.Encode, startSeq, seqCount)
 	case PushEVMEvent:
 		return push.getEVMEvent(subscribe, startSeq, seqCount, maxSize)
+	case PushMpcTask:
+		return push.getMpcEvent(subscribe, startSeq, seqCount, maxSize)
 	default:
 		return nil, 0, errors.New("wrong subscribe type")
 	}
@@ -706,6 +709,55 @@ func (push *Push) getEVMEvent(subscribe *types.PushSubscribeReq, startSeq int64,
 	}
 
 	return postdata, updateSeq, nil
+}
+
+func (push *Push) getMpcEvent(subscribe *types.PushSubscribeReq, startSeq int64, seqCount, maxSize int) ([]byte, int64, error) {
+	actualIterCount := 0
+	var payloadList []*types.MpcPayload
+	for i := startSeq; i < startSeq+int64(seqCount); i++ {
+		chainlog.Info("getMpcEvent", "startSeq:", i)
+		detail, _, err := push.sequenceStore.LoadBlockBySequence(i)
+		if err != nil {
+			return nil, -1, err
+		}
+
+		chainlog.Info("getMpcEvent", "height:", detail.Block.Height, "tx numbers:", len(detail.Block.Txs),
+			"Receipts numbers:", len(detail.Receipts))
+		for _, tx := range detail.Block.Txs {
+			//确认是订阅的交易类型
+			if string(tx.Execer) != "mpc" {
+				continue
+			}
+			var mpcPayload types.MpcPayload
+			err := types.Decode(tx.Payload, &mpcPayload)
+			if nil != err {
+				chainlog.Error("getEVMEvent", "Failed to decode EVMContractAction for evm tx with hash:", common.ToHex(tx.Hash()))
+				continue
+			}
+			payloadList = append(payloadList, &mpcPayload)
+		}
+		actualIterCount++
+	}
+
+	updateSeq := startSeq + int64(actualIterCount) - 1
+	chainlog.Info("getMpcEvent", "updateSeq", updateSeq, "actualIterCount", actualIterCount)
+
+	payloads := &types.MpcPayloadList{
+		MpcPayload: payloadList,
+	}
+
+	var postData []byte
+	var err error
+	if subscribe.Encode == "json" {
+		postData, err = types.PBToJSON(payloads)
+		if err != nil {
+			return nil, -1, err
+		}
+	} else {
+		postData = types.Encode(payloads)
+	}
+
+	return postData, updateSeq, nil
 }
 
 func (push *Push) getTxReceipts(subscribe *types.PushSubscribeReq, startSeq int64, seqCount, maxSize int) ([]byte, int64, error) {
