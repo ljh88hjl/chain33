@@ -74,7 +74,7 @@ enableFetchP2pstore=false
 enableIfDelLocalChunk=false
 
 # 使能推送注册，默认不开启
-enablePushSubscribe=false
+enablePushSubscribe=true
 
 [p2p]
 # p2p类型
@@ -124,13 +124,15 @@ poolCacheSize=10240
 # 每个账户在mempool中得最大交易数量，默认100
 maxTxNumPerAccount=100
 # 最小得交易手续费率，这个没有默认值，必填，一般是0.001 coins
-minTxFeeRate=100000
+minTxFeeRate=0
 # 最大的交易手续费率, 0.1 coins
 maxTxFeeRate=10000000
 # 单笔交易最大的手续费, 10 coins
 maxTxFee=1000000000
 # 是否开启阶梯手续费
 isLevelFee=false
+# 关闭exec检查
+disableExecCheck=true
 
 [mempool.sub.timeline]
 # mempool缓存容量大小，默认10240

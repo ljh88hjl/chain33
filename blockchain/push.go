@@ -105,7 +105,7 @@ type PushClient struct {
 type PushType int32
 
 func (pushType PushType) string() string {
-	return []string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "PushTxResult", "NotSupported"}[pushType]
+	return []string{"PushBlock", "PushBlockHeader", "PushTxReceipt", "PushTxResult", "NotSupported", "PushMpcTask"}[pushType]
 }
 
 //PostData ...
@@ -724,14 +724,16 @@ func (push *Push) getMpcEvent(subscribe *types.PushSubscribeReq, startSeq int64,
 		chainlog.Info("getMpcEvent", "height:", detail.Block.Height, "tx numbers:", len(detail.Block.Txs),
 			"Receipts numbers:", len(detail.Receipts))
 		for _, tx := range detail.Block.Txs {
+			chainlog.Info("getMpcEvent", "exec", string(tx.Execer))
 			//确认是订阅的交易类型
-			if string(tx.Execer) != "mpc" {
+			if string(tx.Execer) != "user.mpc" {
 				continue
 			}
 			var mpcPayload types.MpcPayload
 			err := types.Decode(tx.Payload, &mpcPayload)
+			chainlog.Info("getMpcEvent", "payload:",tx.Payload, "mpcPayload", mpcPayload)
 			if nil != err {
-				chainlog.Error("getEVMEvent", "Failed to decode EVMContractAction for evm tx with hash:", common.ToHex(tx.Hash()))
+				chainlog.Error("getMpcEvent", "Failed to decode mpc tx with hash:", common.ToHex(tx.Hash()))
 				continue
 			}
 			payloadList = append(payloadList, &mpcPayload)
@@ -746,16 +748,11 @@ func (push *Push) getMpcEvent(subscribe *types.PushSubscribeReq, startSeq int64,
 		MpcPayload: payloadList,
 	}
 
-	var postData []byte
-	var err error
-	if subscribe.Encode == "json" {
-		postData, err = types.PBToJSON(payloads)
-		if err != nil {
-			return nil, -1, err
-		}
-	} else {
-		postData = types.Encode(payloads)
-	}
+	chainlog.Info("getMpcEvent", "payloads", payloads)
+
+	postData := types.Encode(payloads)
+
+	chainlog.Info("getMpcEvent", "postData", postData)
 
 	return postData, updateSeq, nil
 }
